@@ -1,28 +1,29 @@
 const db = require('../../data/dbConfig.js')
 
 function find() {
-  return db('partners')
+  return db('payers')
 }
 
 
 function findById(id) {
-  return db('partners')
-    .where({'partner-id' : id})
+  return db('payers')
+    .where({'payerId' : id})
     .first()
 }
 
 
 function findByName(name) {
-  return db('partners')
-    .where({'partner-name': name})
+  return db('payers')
+    .where({'payer': name})
     .first()
   }
 
 
-function addPartner(partner) {
-  return db('partners')
-    .insert(partner)
-    .returning('partner-id')
+async function addPayer(payer) {
+  const [id] = await db('payers')
+    .insert(payer);
+
+  return id;
 }
 
 
@@ -30,5 +31,5 @@ module.exports = {
   find,
   findById, 
   findByName,
-  addPartner
+  addPayer
 }

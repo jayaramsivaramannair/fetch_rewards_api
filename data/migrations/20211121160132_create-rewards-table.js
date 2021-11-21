@@ -1,11 +1,11 @@
 
 exports.up = async function(knex) {
   await knex.schema.createTable('rewards', tbl => {
-    tbl.increments('reward-id');
+    tbl.increments('rewardId');
     tbl.integer('points').notNullable();
     tbl.timestamp('timestamp').notNullable().defaultTo(knex.fn.now());
-    tbl.integer('user-id').references('user-id').inTable('users').notNullable().onDelete('CASCADE').onUpdate('CASCADE');
-    tbl.integer('payer-id').references('payer-id').inTable('payers').notNullable().onDelete('CASCADE').onUpdate('CASCADE');
+    tbl.integer('userId').references('userId').inTable('users').notNullable().onDelete('CASCADE').onUpdate('CASCADE');
+    tbl.integer('payerId').references('payerId').inTable('payers').notNullable().onDelete('CASCADE').onUpdate('CASCADE');
   })
 };
 

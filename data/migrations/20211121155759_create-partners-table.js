@@ -1,7 +1,7 @@
 
 exports.up = async function(knex) {
   await knex.schema.createTable('payers', tbl => {
-    tbl.increments('payer-id');
+    tbl.increments('payerId');
     tbl.string('payer').unique().notNullable();
   })
 };

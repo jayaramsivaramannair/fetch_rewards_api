@@ -7,15 +7,16 @@ function find() {
 
 function findById(id) {
   return db('users')
-    .where({'user-id': id })
+    .where({'userId': id })
     .first();
 }
 
-function addUser(user) {
+async function addUser(user) {
   //Returns the id of the user that was just added
-  return db('users')
-    .insert(user)
-    .returning('user-id');
+  const [id] = await db('users')
+    .insert(user);
+
+  return id;
 }
 
 
