@@ -10,6 +10,10 @@ module.exports = {
     //Specifies the path where the database tables will be created.
     migrations: {
       directory: './data/migrations'
+    },
+
+    seeds: {
+      directory: './data/seeds'
     }
   },
 };
