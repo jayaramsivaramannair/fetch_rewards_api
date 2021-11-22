@@ -10,20 +10,44 @@ router.get('/:id', async (req, res, next) => {
     const user = await users.findById(req.params.id);
     if(!user) {
       res.status(404).json({message: 'User not found!'})
+      return 
     }
 
     const balance = await rewards.findById(req.params.id)
-    res.status(200).json(balance);
+
+    if(balance.length === 0) {
+      res.status(200).json({message: 'User has no rewards yet!'})
+      return
+    }
+
+    const modifiedBalanceObj = {}
+    for (let element of balance) {
+      if(element.payer in modifiedBalanceObj) {
+        modifiedBalanceObj[element.payer] += element.points
+      } else {
+        modifiedBalanceObj[element.payer] = element.points
+      }
+    }
+
+    res.status(200).json(modifiedBalanceObj);
 
   } catch (err) {
     console.log(err.stack)
-    next(err);
+    next(err) 
   }
 })
 
 //Add transactions to add points to users' available balance
 router.post('/:id', async (req, res, next) => {
   try {
+
+    //First check if the user exists or not
+    const user = await users.findById(req.params.id);
+    if(!user) {
+      res.status(404).json({message: 'User not found!'})
+      return 
+    }
+
     //Destructure to get payer and points from the request body
     const {payer, points} = req.body;
     let payerObj = await payers.findByName(payer.toUpperCase());
@@ -46,7 +70,7 @@ router.post('/:id', async (req, res, next) => {
 
   } catch (err) {
     console.log(err.stack)
-    next(err);
+    next(err)
   }
 })
 
