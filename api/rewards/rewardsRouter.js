@@ -20,6 +20,7 @@ router.get('/:id', async (req, res, next) => {
       return
     }
 
+    
     const modifiedBalanceObj = {}
     for (let element of balance) {
       if(element.payer in modifiedBalanceObj) {
@@ -28,6 +29,7 @@ router.get('/:id', async (req, res, next) => {
         modifiedBalanceObj[element.payer] = element.points
       }
     }
+    
 
     res.status(200).json(modifiedBalanceObj);
 
@@ -72,6 +74,69 @@ router.post('/:id', async (req, res, next) => {
     console.log(err.stack)
     next(err)
   }
+})
+
+
+//Update the points in rewards table after they have been spent
+router.put('/:id', async (req, res, next) => {
+  try {
+    //First check if the user exists or not
+    const user = await users.findById(req.params.id);
+    if(!user) {
+      res.status(404).json({message: 'User not found!'})
+      return 
+    }
+
+
+    let spentSummary = [];
+    //Fetches the balance of rewards in user's account
+    const balance = await rewards.findById(req.params.id)
+
+    let {points} = req.body;
+    let  updatedPoints = 0;
+    let spentPoints = 0;
+    let i = 0;
+    let updatedId = 0
+
+    if(balance.length === 0) {
+      res.status(200).json({message: 'User has no rewards yet!'})
+      return
+    }
+
+    while (true) {
+
+      if(!points || i === balance.length) {
+        break;
+      }
+
+      if(balance[i].points > 0 && balance[i].points >= points) {
+        updatedPoints = balance[i].points - points;
+        spentPoints = (balance[i].points - updatedPoints) * -1;
+        spentSummary.push({payer: balance[i].payer, points: spentPoints});
+        updatedId = await rewards.updatePoints(balance[i].rewardId, updatedPoints);
+        //Get the revised point balance to be spent
+        points = points + spentPoints;
+
+      } else if(balance[i].points > 0 && balance[i].points < points) {
+        updatedPoints = 0;
+        spentPoints = balance[i].points * -1;
+        spentSummary.push({payer: balance[i].payer, points: spentPoints});
+        updatedId = await rewards.updatePoints(balance[i].rewardId, updatedPoints);
+        console.log(updatedId)
+        points = points - balance[i].points;
+
+      } 
+      console.log(points);
+      i += 1;
+    }
+
+    res.status(200).json(spentSummary);
+
+  } catch (err) {
+    console.log(err.stack)
+    next(err);
+  }
+
 })
 
 
