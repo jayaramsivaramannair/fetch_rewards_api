@@ -88,7 +88,8 @@ router.put('/:id', async (req, res, next) => {
     }
 
 
-    let spentSummary = [];
+    let spentObj = {};
+    let spentArray = [];
     //Fetches the balance of rewards in user's account
     const balance = await rewards.findById(req.params.id)
 
@@ -112,7 +113,6 @@ router.put('/:id', async (req, res, next) => {
       if(balance[i].points > 0 && balance[i].points >= points) {
         updatedPoints = balance[i].points - points;
         spentPoints = (balance[i].points - updatedPoints) * -1;
-        spentSummary.push({payer: balance[i].payer, points: spentPoints});
         updatedId = await rewards.updatePoints(balance[i].rewardId, updatedPoints);
         //Get the revised point balance to be spent
         points = points + spentPoints;
@@ -120,17 +120,29 @@ router.put('/:id', async (req, res, next) => {
       } else if(balance[i].points > 0 && balance[i].points < points) {
         updatedPoints = 0;
         spentPoints = balance[i].points * -1;
-        spentSummary.push({payer: balance[i].payer, points: spentPoints});
         updatedId = await rewards.updatePoints(balance[i].rewardId, updatedPoints);
         console.log(updatedId)
         points = points - balance[i].points;
-
       } 
+
+      if(balance[i].payer in spentObj) {
+        spentObj[balance[i].payer] += spentPoints;
+      } else {
+        spentObj[balance[i].payer] = spentPoints;
+      }
+
       console.log(points);
       i += 1;
     }
 
-    res.status(200).json(spentSummary);
+    for(let record in spentObj) {
+      spentArray.push({
+        payer: record,
+        points: spentObj[record]
+      })
+    }
+
+    res.status(200).json(spentArray);
 
   } catch (err) {
     console.log(err.stack)
