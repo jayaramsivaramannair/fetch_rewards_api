@@ -88,10 +88,14 @@ router.put('/:id', async (req, res, next) => {
     }
 
 
+    //Keeps track of negative reward points in the user accounts
+    let payerCredits = {};
+    //Keeps track of spending by each payer
     let spentObj = {};
     let spentArray = [];
     //Fetches the balance of rewards in user's account
     const balance = await rewards.findById(req.params.id)
+    console.log(balance)
 
     let {points} = req.body;
     let  updatedPoints = 0;
@@ -104,37 +108,108 @@ router.put('/:id', async (req, res, next) => {
       return
     }
 
-    while (true) {
+    //Creates a new objec with the credit points for each payer
+    for(let reward of balance) {
+      if(reward.points < 0 ) {
+        if(reward.payer in payerCredits) {
+          payerCredits[reward.payer].push({rewardId: reward.rewardId, points: reward.points})
+        } else {
+          payerCredits[reward.payer] = [{rewardId: reward.rewardId, points: reward.points}]
+        }
+      }
+    }
 
+    console.log(payerCredits)
+
+    while (true) {
       if(!points || i === balance.length) {
         break;
       }
 
+
       if(balance[i].points > 0 && balance[i].points >= points) {
-        updatedPoints = balance[i].points - points;
-        spentPoints = (balance[i].points - updatedPoints) * -1;
-        updatedId = await rewards.updatePoints(balance[i].rewardId, updatedPoints);
-        //Get the revised point balance to be spent
-        points = points + spentPoints;
+        //Check to see if the payer has any negative balance or not
+        if(balance[i].payer in payerCredits) {
+          for(let credit of payerCredits[balance[i].payer]) {
+            if(balance[i].points > Math.abs(credit.points)) {
+              await rewards.updatePoints(credit.rewardId, 0);
+              //Balance which can still be utilized by user
+              updatedPoints = balance[i].points + credit.points;
+              spentPoints = updatedPoints * -1;
+              updatedId = await rewards.updatePoints(balance[i].rewardId, 0);
+              points = points + spentPoints;
+              credit = {};
+            } else if (balance[i].points < Math.abs(credit.points)) {
+              await rewards.updatePoints(balance[i].rewardId, 0);
+              updatedPoints = credit.points + balance[i].points;
+              udpatedId = await rewards.updatePoints(credit.rewardId, updatedPoints);
+              spentPoints = 0 * -1;
+              credit = {};
+              points = points + spentPoints;
+            } else if (balance[i].points === Math.abs(credit.points)) {
+              await rewards.updatePoints(balance[i].rewardId, 0);
+              await rewards.updatePoints(credit.rewardId, 0);
+              spentPoints = 0 * -1;
+              credit = {};
+              points = points + spentPoints;
+            }
+          }
+        } else {
+          updatedPoints = balance[i].points - points;
+          spentPoints = (balance[i].points - updatedPoints) * -1;
+          updatedId = await rewards.updatePoints(balance[i].rewardId, updatedPoints);
+          //Get the revised point balance to be spent
+          points = points + spentPoints;
+        }
 
       } else if(balance[i].points > 0 && balance[i].points < points) {
-        updatedPoints = 0;
-        spentPoints = balance[i].points * -1;
-        updatedId = await rewards.updatePoints(balance[i].rewardId, updatedPoints);
-        console.log(updatedId)
-        points = points - balance[i].points;
+        //Check to see if the payer has any negative balance or not
+        if(balance[i].payer in payerCredits) {
+          for(let credit of payerCredits[balance[i].payer]) {
+            if(balance[i].points > Math.abs(credit.points)) {
+              await rewards.updatePoints(credit.rewardId, 0);
+              //Balance which can still be utilized by user
+              updatedPoints = balance[i].points - Math.abs(credit.points);
+              spentPoints = updatedPoints * -1;
+              updatedId = await rewards.updatePoints(balance[i].rewardId, 0);
+              credit = {};
+              points = points + spentPoints;
+            } else if (balance[i].points < Math.abs(credit.points)) {
+              await rewards.updatePoints(balance[i].rewardId, 0);
+              updatedPoints = credit.points + balance[i].points;
+              udpatedId = await rewards.updatePoints(credit.rewardId, updatedPoints);
+              spentPoints = 0;
+              credit = {};
+              points = points + spentPoints;
+            } else if (balance[i].points === Math.abs(credit.points)) {
+              await rewards.updatePoints(balance[i].rewardId, 0);
+              await rewards.updatePoints(credit.rewardId, 0);
+              spentPoints = 0;
+              credit = {};
+              points = points + spentPoints;
+            }
+          }
+        } else {
+          updatedPoints = 0;
+          spentPoints = balance[i].points * -1;
+          updatedId = await rewards.updatePoints(balance[i].rewardId, updatedPoints);
+          console.log(updatedId)
+          points = points - balance[i].points;
+        }
       } 
 
-      if(balance[i].payer in spentObj) {
+      if(balance[i].payer in spentObj && balance[i].points > 0){
         spentObj[balance[i].payer] += spentPoints;
-      } else {
+      } else if (spentPoints) {
         spentObj[balance[i].payer] = spentPoints;
       }
-
-      console.log(points);
+      //Reset the spent points back to zero
+      spentPoints = 0;
+      console.log(spentObj);
       i += 1;
     }
 
+    //Converts the object back into an array
     for(let record in spentObj) {
       spentArray.push({
         payer: record,
