@@ -108,7 +108,7 @@ router.put('/:id', async (req, res, next) => {
       return
     }
 
-    //Creates a new objec with the credit points for each payer
+    //Creates a new object with the credit points for each payer
     for(let reward of balance) {
       if(reward.points < 0 ) {
         if(reward.payer in payerCredits) {
@@ -126,77 +126,47 @@ router.put('/:id', async (req, res, next) => {
         break;
       }
 
-
-      if(balance[i].points > 0 && balance[i].points >= points) {
-        //Check to see if the payer has any negative balance or not
-        if(balance[i].payer in payerCredits) {
-          for(let credit of payerCredits[balance[i].payer]) {
-            if(balance[i].points > Math.abs(credit.points)) {
-              await rewards.updatePoints(credit.rewardId, 0);
-              //Balance which can still be utilized by user
-              updatedPoints = balance[i].points + credit.points;
-              spentPoints = updatedPoints * -1;
-              updatedId = await rewards.updatePoints(balance[i].rewardId, 0);
-              points = points + spentPoints;
-              credit = {};
-            } else if (balance[i].points < Math.abs(credit.points)) {
-              await rewards.updatePoints(balance[i].rewardId, 0);
-              updatedPoints = credit.points + balance[i].points;
-              udpatedId = await rewards.updatePoints(credit.rewardId, updatedPoints);
-              spentPoints = 0 * -1;
-              credit = {};
-              points = points + spentPoints;
-            } else if (balance[i].points === Math.abs(credit.points)) {
-              await rewards.updatePoints(balance[i].rewardId, 0);
-              await rewards.updatePoints(credit.rewardId, 0);
-              spentPoints = 0 * -1;
-              credit = {};
-              points = points + spentPoints;
-            }
+      if(balance[i].payer in payerCredits && balance[i].points > 0) {
+        for(let credit of payerCredits[balance[i].payer]) {
+          //Points are enough to cover the negative balance
+          if(balance[i].points > Math.abs(credit.points)) {
+            await rewards.updatePoints(credit.rewardId, 0);
+            //Balance which can still be utilized by user
+            updatedPoints = balance[i].points + credit.points;
+            spentPoints = updatedPoints * -1;
+            updatedId = await rewards.updatePoints(balance[i].rewardId, 0);
+            points = points + spentPoints;
+            credit = {};
+            //Points are not enough to cover the negative balance
+          } else if (balance[i].points < Math.abs(credit.points)) {
+            await rewards.updatePoints(balance[i].rewardId, 0);
+            updatedPoints = credit.points + balance[i].points;
+            udpatedId = await rewards.updatePoints(credit.rewardId, updatedPoints);
+            spentPoints = 0 * -1;
+            credit = {};
+            points = points + spentPoints;
+            //Points are just enough to cover the negative balance
+          } else if (balance[i].points === Math.abs(credit.points)) {
+            await rewards.updatePoints(balance[i].rewardId, 0);
+            await rewards.updatePoints(credit.rewardId, 0);
+            spentPoints = 0 * -1;
+            credit = {};
+            points = points + spentPoints;
           }
-        } else {
+        }
+       } else if (balance[i].points > 0 && balance[i].points >= points) {
           updatedPoints = balance[i].points - points;
           spentPoints = (balance[i].points - updatedPoints) * -1;
           updatedId = await rewards.updatePoints(balance[i].rewardId, updatedPoints);
           //Get the revised point balance to be spent
           points = points + spentPoints;
-        }
-
-      } else if(balance[i].points > 0 && balance[i].points < points) {
-        //Check to see if the payer has any negative balance or not
-        if(balance[i].payer in payerCredits) {
-          for(let credit of payerCredits[balance[i].payer]) {
-            if(balance[i].points > Math.abs(credit.points)) {
-              await rewards.updatePoints(credit.rewardId, 0);
-              //Balance which can still be utilized by user
-              updatedPoints = balance[i].points - Math.abs(credit.points);
-              spentPoints = updatedPoints * -1;
-              updatedId = await rewards.updatePoints(balance[i].rewardId, 0);
-              credit = {};
-              points = points + spentPoints;
-            } else if (balance[i].points < Math.abs(credit.points)) {
-              await rewards.updatePoints(balance[i].rewardId, 0);
-              updatedPoints = credit.points + balance[i].points;
-              udpatedId = await rewards.updatePoints(credit.rewardId, updatedPoints);
-              spentPoints = 0;
-              credit = {};
-              points = points + spentPoints;
-            } else if (balance[i].points === Math.abs(credit.points)) {
-              await rewards.updatePoints(balance[i].rewardId, 0);
-              await rewards.updatePoints(credit.rewardId, 0);
-              spentPoints = 0;
-              credit = {};
-              points = points + spentPoints;
-            }
-          }
-        } else {
+      } else if (balance[i].points > 0 && balance[i].points < points) {
           updatedPoints = 0;
           spentPoints = balance[i].points * -1;
           updatedId = await rewards.updatePoints(balance[i].rewardId, updatedPoints);
           console.log(updatedId)
           points = points - balance[i].points;
-        }
-      } 
+      }
 
       if(balance[i].payer in spentObj && balance[i].points > 0){
         spentObj[balance[i].payer] += spentPoints;
@@ -217,7 +187,7 @@ router.put('/:id', async (req, res, next) => {
       })
     }
 
-    res.status(200).json(spentArray);
+  res.status(200).json(spentArray);
 
   } catch (err) {
     console.log(err.stack)
