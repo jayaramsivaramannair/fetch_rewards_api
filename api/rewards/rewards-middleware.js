@@ -20,6 +20,11 @@ const checkEnoughBalanceExists = async (req, res, next) => {
   try {
     const totalRewards = await Rewards.getTotalRewards(req.params.id);
     const {points} = req.body;
+    if(!points) {
+      res.status(400).json({message: 'Missing points information from the request body'})
+      return 
+    }
+    
     if(totalRewards < points) {
       res.status(200).json({message: 'User does not have enough rewards!'})
       return

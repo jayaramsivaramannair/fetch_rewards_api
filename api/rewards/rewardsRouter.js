@@ -2,26 +2,14 @@ const rewards = require('./rewardsModel.js');
 const payers = require('../partners/partnersModel.js')
 const users = require('../users/usersModel.js');
 const router = require('express').Router();
+const {checkEnoughBalanceExists, checkRewardsExist} = require("./rewards-middleware.js");
+const {checkUserExists} = require('../users/users-middleware.js');
 
 //Get the reward balance for a specific user
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', checkUserExists, async (req, res, next) => {
   try {
     //First check if the user exists or not
     const user = await users.findById(req.params.id);
-    const totalRewards = await rewards.getTotalRewards(req.params.id);
-    console.log(totalRewards);
-    if(!user) {
-      res.status(404).json({message: 'User not found!'})
-      return 
-    }
-
-    const balance = await rewards.findById(req.params.id)
-
-    if(balance.length === 0) {
-      res.status(200).json({message: 'User has no rewards yet!'})
-      return
-    }
-
     
     const modifiedBalanceObj = {}
     for (let element of balance) {
@@ -32,7 +20,6 @@ router.get('/:id', async (req, res, next) => {
       }
     }
     
-
     res.status(200).json(modifiedBalanceObj);
 
   } catch (err) {
@@ -42,18 +29,15 @@ router.get('/:id', async (req, res, next) => {
 })
 
 //Add transactions to add points to users' available balance
-router.post('/:id', async (req, res, next) => {
+router.post('/:id', checkUserExists,async (req, res, next) => {
   try {
-
-    //First check if the user exists or not
-    const user = await users.findById(req.params.id);
-    if(!user) {
-      res.status(404).json({message: 'User not found!'})
-      return 
-    }
-
     //Destructure to get payer and points from the request body
     const {payer, points} = req.body;
+    if(!payer || !points) {
+      res.status(400).json({message: "Missing payer and/or points in the request body!"})
+      return
+    }
+
     let payerObj = await payers.findByName(payer.toUpperCase());
     let payerId = payerObj ? payerObj.payerId : null;
     
@@ -61,6 +45,7 @@ router.post('/:id', async (req, res, next) => {
     if(!payerId) {
       payerId = await payers.addPayer({payer: payer.toUpperCase()});
     }
+
     console.log(payerId)
     //The object needed while adding the reward to the rewards table
     let pointsObj = {
@@ -80,7 +65,7 @@ router.post('/:id', async (req, res, next) => {
 
 
 //Update the points in rewards table after they have been spent
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', checkUserExists, checkRewardsExist, checkEnoughBalanceExists, async (req, res, next) => {
   try {
     //First check if the user exists or not
     const user = await users.findById(req.params.id);
