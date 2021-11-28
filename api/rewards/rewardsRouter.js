@@ -8,6 +8,8 @@ router.get('/:id', async (req, res, next) => {
   try {
     //First check if the user exists or not
     const user = await users.findById(req.params.id);
+    const totalRewards = await rewards.getTotalRewards(req.params.id);
+    console.log(totalRewards);
     if(!user) {
       res.status(404).json({message: 'User not found!'})
       return 

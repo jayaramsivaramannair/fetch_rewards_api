@@ -13,6 +13,14 @@ async function addReward(reward) {
   return id;
 }
 
+async function getTotalRewards(id) {
+  const totalRewards = await db('rewards')
+    .where({'userId': id})
+    .sum('points as totalRewards');
+
+  return totalRewards[0].totalRewards;
+}
+
 async function updatePoints(id, points) {
   const updatedId = await db('rewards').where({'rewardId': id}).update({'points': points});
   return updatedId;
@@ -22,5 +30,6 @@ async function updatePoints(id, points) {
 module.exports = {
   findById,
   addReward,
-  updatePoints
+  updatePoints,
+  getTotalRewards
 }
