@@ -25,7 +25,7 @@
 ## Instructions
 
 - Clone the repository to your local machine or download the zip file and extract it to your local machine.
-- Repository can be cloned by navigating to the appropriate location on the terminal and typing `https://github.com/jayaramsivaramannair/fetch_rewards_api.git`
+- Repository can be cloned by navigating to the appropriate location on the terminal and typing `git clone https://github.com/jayaramsivaramannair/fetch_rewards_api.git`
 - cd into the project folder.
 - Run npm install to install all the required dependencies.
 - Run npm server or npm start to run the server locally.
