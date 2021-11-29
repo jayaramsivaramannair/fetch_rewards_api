@@ -5,11 +5,70 @@ const router = require('express').Router();
 const {checkEnoughBalanceExists, checkRewardsExist} = require("./rewards-middleware.js");
 const {checkUserExists} = require('../users/users-middleware.js');
 
+/**
+ * 
+ * @swagger
+ * 
+ * components:
+ *   schemas:
+ *     points:
+ *       type: object
+ *       properties:
+ *          payer:
+ *            type: string
+ *            description: The vendor who is paying the reward
+ *          points:
+ *            type: integer
+ *            description: The points rewarded by the vendor
+ *       example:
+ *          "DANNON" : 1100
+ *          "UNILEVER" : 200
+ *          "MILLER COORS" : 10000
+ */
+
+/**
+ * 
+ * @swagger
+ * tags:
+ *   name: Points
+ *   description: API for accessing, updating and adding points to User's accounts
+ */
+
+
+
+/**
+ * 
+ * @swagger
+ * /api/points/{id}:
+ *  get:
+ *    summary: Get reward balance for each specified userId
+ *    tags: [Points]
+ *    parameters:
+ *     - in: path
+ *       name: id
+ *       schema:
+ *        type: integer  
+ *       required: true  
+ *       description: userId
+ *    responses:
+ *      200:
+ *       description: Object with listing of reward balance broken down by each payer of the reward
+ *       content:
+ *        application/json:
+ *           schema:
+ *              $ref: '#/components/schemas/points' 
+ *       404:
+ *         description: User not found
+ *       400:
+ *         description: User has no rewards yet!
+ */
+
 //Get the reward balance for a specific user
-router.get('/:id', checkUserExists, async (req, res, next) => {
+router.get('/:id', checkUserExists, checkRewardsExist, async (req, res, next) => {
   try {
     //First check if the user exists or not
     const user = await users.findById(req.params.id);
+    const balance = req.balance;
     
     const modifiedBalanceObj = {}
     for (let element of balance) {

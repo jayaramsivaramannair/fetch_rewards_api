@@ -5,11 +5,12 @@ const checkRewardsExist = async (req, res, next) => {
     const balance = await Rewards.findById(req.params.id)
 
     if(balance.length === 0) {
-      res.status(200).json({message: 'User has no rewards yet!'})
+      res.status(400).json({message: 'User has no rewards yet!'})
       return
-    } else {
-      next()
     }
+    //Make the balance available to middlewares downstream
+    req.balance = balance
+    next()
   } catch {
     next(err)
   }
@@ -24,7 +25,7 @@ const checkEnoughBalanceExists = async (req, res, next) => {
       res.status(400).json({message: 'Missing points information from the request body'})
       return 
     }
-    
+
     if(totalRewards < points) {
       res.status(200).json({message: 'User does not have enough rewards!'})
       return
